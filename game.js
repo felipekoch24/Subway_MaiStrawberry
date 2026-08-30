@@ -1,28 +1,26 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// Carregando as imagens
+// Carregando as imagens (incluindo o skate!)
 const imgPista = new Image(); imgPista.src = "pista.png";
 const imgMaiara = new Image(); imgMaiara.src = "maiara.png";
 const imgMorango = new Image(); imgMorango.src = "morango.png";
 const imgMoeda = new Image(); imgMoeda.src = "moeda.png";
 const imgObstaculo = new Image(); imgObstaculo.src = "obstaculo.png";
+const imgSkate = new Image(); imgSkate.src = "skate1.png";
 
 // Variáveis do Jogo
 let score = 0;
 let coins = 0;
 let isGameOver = false;
-let gameSpeed = 5;
-
-// Posição de rolagem da pista para dar efeito de movimento contínuo
-let pistaY = 0;
+let gameSpeed = 4; // Velocidade que os itens vêm em direção à Maiara
 
 // Posições das 3 pistas (X central de cada faixa)
 const lanes = [110, 200, 290];
 let currentLane = 1; // Começa na pista do meio
 
 let maiaraX = lanes[currentLane];
-let maiaraY = 420;
+let maiaraY = 440;
 
 // Listas de itens no cenário
 let obstaculos = [];
@@ -55,28 +53,23 @@ document.addEventListener("touchend", (e) => {
     }
 });
 
-// Função para gerar obstáculos e moedas
+// Função para gerar obstáculos e moedas na parte superior vindo para baixo
 function spawnItens() {
     frameCount++;
-    if (frameCount % 75 === 0) {
+    if (frameCount % 85 === 0) {
         let laneAleatoria = Math.floor(Math.random() * 3);
         
-        if (Math.random() > 0.3) {
-            obstaculos.push({ x: lanes[laneAleatoria], y: -100, width: 45, height: 45, lane: laneAleatoria });
+        if (Math.random() > 0.35) {
+            // Obstáculo começa lá no fundo (y menor) e vem crescendo/vindo pra frente
+            obstaculos.push({ x: lanes[laneAleatoria], y: 180, width: 30, height: 30, lane: laneAleatoria, speed: 3 });
         } else {
-            moedas.push({ x: lanes[laneAleatoria], y: -100, width: 32, height: 32, lane: laneAleatoria });
+            moedas.push({ x: lanes[laneAleatoria], y: 180, width: 25, height: 25, lane: laneAleatoria, speed: 3 });
         }
     }
 }
 
 function update() {
     if (isGameOver) return;
-
-    // Faz a pista se mover para baixo dando a impressão de corrida
-    pistaY += gameSpeed;
-    if (pistaY >= canvas.height) {
-        pistaY = 0;
-    }
 
     // Movimentação suave da Maiara para a pista escolhida
     let targetX = lanes[currentLane];
@@ -90,33 +83,39 @@ function update() {
     // Gera novos itens
     spawnItens();
 
-    // Atualiza obstáculos
+    // Atualiza obstáculos (eles vêm do fundo em direção à Maiara)
     for (let i = obstaculos.length - 1; i >= 0; i--) {
-        obstaculos[i].y += gameSpeed;
+        // Conforme o obstáculo desce na tela, ele aumenta levemente de tamanho simulando profundidade 3D
+        obstaculos[i].y += obstaculos[i].speed;
+        obstaculos[i].speed += 0.03; // Acelera conforme se aproxima
+        obstaculos[i].width += 0.4;
+        obstaculos[i].height += 0.4;
 
         // Colisão com o obstáculo (A Maiara bateu!)
         if (
             obstaculos[i].lane === currentLane &&
-            maiaraY < obstaculos[i].y + obstaculos[i].height &&
-            maiaraY + 65 > obstaculos[i].y
+            obstaculos[i].y >= 400 && obstaculos[i].y <= 480
         ) {
             triggerGameOver();
         }
 
+        // Remove obstáculo que passou da tela
         if (obstaculos[i].y > canvas.height) {
             obstaculos.splice(i, 1);
         }
     }
 
-    // Atualiza moedas
+    // Atualiza moedas estáticas vindo na direção dela
     for (let i = moedas.length - 1; i >= 0; i--) {
-        moedas[i].y += gameSpeed;
+        moedas[i].y += moedas[i].speed;
+        moedas[i].speed += 0.03;
+        moedas[i].width += 0.3;
+        moedas[i].height += 0.3;
 
-        // Coleta de moeda
+        // Coleta de moeda (se estiver na mesma pista e na altura da Maiara)
         if (
             moedas[i].lane === currentLane &&
-            maiaraY < moedas[i].y + moedas[i].height &&
-            maiaraY + 65 > moedas[i].y
+            moedas[i].y >= 410 && moedas[i].y <= 470
         ) {
             coins += 1;
             moedas.splice(i, 1);
@@ -131,29 +130,29 @@ function update() {
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 1. Desenha a Pista em movimento contínuo (dupla para criar o looping perfeito)
-    ctx.drawImage(imgPista, 0, pistaY, canvas.width, canvas.height);
-    ctx.drawImage(imgPista, 0, pistaY - canvas.height, canvas.width, canvas.height);
+    // 1. O CENÁRIO FICA FIXO (A pista não roda, fica estática parecendo uma foto de fundo linda)
+    ctx.drawImage(imgPista, 0, 0, canvas.width, canvas.height);
 
-    // 2. Desenha os Obstáculos
+    // 2. Desenha os Obstáculos vindo do fundo
     obstaculos.forEach(obs => {
-        ctx.drawImage(imgObstaculo, obs.x - 22, obs.y, obs.width, obs.height);
+        ctx.drawImage(imgObstaculo, obs.x - obs.width / 2, obs.y, obs.width, obs.height);
     });
 
-    // 3. Desenha as Moedas
+    // 3. Desenha as Moedas paradas vindo na direção da tela
     moedas.forEach(m => {
-        ctx.drawImage(imgMoeda, m.x - 16, m.y, m.width, m.height);
+        ctx.drawImage(imgMoeda, m.x - m.width / 2, m.y, m.width, m.height);
     });
 
-    // 4. Efeito de leve corrida (subindo e descendo os pés com o tempo)
+    // 4. Efeito leve de movimento nos pés da Maiara
     let maiaraBounce = Math.sin(Date.now() / 60) * 3;
 
-    // 5. Desenha a Maiara correndo embaixo
+    // 5. Desenha o Skate e a Maiara fixos na parte de baixo correndo
+    ctx.drawImage(imgSkate, maiaraX - 25, maiaraY + 35 + maiaraBounce, 50, 32);
     ctx.drawImage(imgMaiara, maiaraX - 25, maiaraY + maiaraBounce, 50, 65);
 
-    // 6. Desenha o Super Morango um pouco mais atrás na perseguição
+    // 6. Desenha o Super Morango colado atrás esperando ela errar
     let morangoBounce = Math.sin(Date.now() / 60) * 4;
-    ctx.drawImage(imgMorango, maiaraX - 28, maiaraY + 55 + morangoBounce, 55, 65);
+    ctx.drawImage(imgMorango, maiaraX - 28, maiaraY + 60 + morangoBounce, 55, 65);
 }
 
 function loop() {
@@ -181,9 +180,9 @@ function reiniciarJogo() {
     loop();
 }
 
-// Inicia o jogo quando as imagens carregarem
+// Inicia o jogo quando as imagens carregarem (total de 6 imagens agora)
 let imagensCarregadas = 0;
-const totalImagens = 5;
+const totalImagens = 6;
 
 function checarCarregamento() {
     imagensCarregadas++;
@@ -197,4 +196,5 @@ imgMaiara.onload = checarCarregamento;
 imgMorango.onload = checarCarregamento;
 imgMoeda.onload = checarCarregamento;
 imgObstaculo.onload = checarCarregamento;
-            
+imgSkate.onload = checarCarregamento;
+                                
