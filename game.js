@@ -12,19 +12,21 @@ const imgObstaculo = new Image(); imgObstaculo.src = "obstaculo.png";
 let score = 0;
 let coins = 0;
 let isGameOver = false;
-let gameSpeed = 4;
+let gameSpeed = 5;
+
+// Posição de rolagem da pista para dar efeito de movimento contínuo
+let pistaY = 0;
 
 // Posições das 3 pistas (X central de cada faixa)
-const lanes = [90, 200, 310];
+const lanes = [110, 200, 290];
 let currentLane = 1; // Começa na pista do meio
 
 let maiaraX = lanes[currentLane];
-let maiaraY = 460;
+let maiaraY = 420;
 
 // Listas de itens no cenário
 let obstaculos = [];
 let moedas = [];
-
 let frameCount = 0;
 
 // Controles de Teclado
@@ -53,17 +55,16 @@ document.addEventListener("touchend", (e) => {
     }
 });
 
-// Função para criar obstáculos e moedas periodicamente
+// Função para gerar obstáculos e moedas
 function spawnItens() {
     frameCount++;
-    if (frameCount % 90 === 0) { // A cada X quadros cria algo
+    if (frameCount % 75 === 0) {
         let laneAleatoria = Math.floor(Math.random() * 3);
         
-        // Decide se cria obstáculo ou moeda
-        if (Math.random() > 0.4) {
-            obstaculos.push({ x: lanes[laneAleatoria], y: -100, width: 50, height: 50, lane: laneAleatoria });
+        if (Math.random() > 0.3) {
+            obstaculos.push({ x: lanes[laneAleatoria], y: -100, width: 45, height: 45, lane: laneAleatoria });
         } else {
-            moedas.push({ x: lanes[laneAleatoria], y: -100, width: 35, height: 35, lane: laneAleatoria });
+            moedas.push({ x: lanes[laneAleatoria], y: -100, width: 32, height: 32, lane: laneAleatoria });
         }
     }
 }
@@ -71,52 +72,56 @@ function spawnItens() {
 function update() {
     if (isGameOver) return;
 
+    // Faz a pista se mover para baixo dando a impressão de corrida
+    pistaY += gameSpeed;
+    if (pistaY >= canvas.height) {
+        pistaY = 0;
+    }
+
     // Movimentação suave da Maiara para a pista escolhida
     let targetX = lanes[currentLane];
-    maiaraX += (targetX - maiaraX) * 0.2;
+    maiaraX += (targetX - maiaraX) * 0.25;
 
     // Aumenta a pontuação de distância
-    score += 0.1;
+    score += 0.2;
     document.getElementById("score").innerText = `🏆 ${Math.floor(score)} m`;
     document.getElementById("coins").innerText = `🪙 ${coins}`;
 
-    // Gera novos itens na pista
+    // Gera novos itens
     spawnItens();
 
-    // Atualiza posição dos obstáculos
+    // Atualiza obstáculos
     for (let i = obstaculos.length - 1; i >= 0; i--) {
         obstaculos[i].y += gameSpeed;
 
-        // Detecta colisão com o obstáculo
+        // Colisão com o obstáculo (A Maiara bateu!)
         if (
             obstaculos[i].lane === currentLane &&
             maiaraY < obstaculos[i].y + obstaculos[i].height &&
-            maiaraY + 70 > obstaculos[i].y
+            maiaraY + 65 > obstaculos[i].y
         ) {
             triggerGameOver();
         }
 
-        // Remove obstáculo que passou da tela
         if (obstaculos[i].y > canvas.height) {
             obstaculos.splice(i, 1);
         }
     }
 
-    // Atualiza posição das moedas
+    // Atualiza moedas
     for (let i = moedas.length - 1; i >= 0; i--) {
         moedas[i].y += gameSpeed;
 
-        // Detecta coleta da moeda
+        // Coleta de moeda
         if (
             moedas[i].lane === currentLane &&
             maiaraY < moedas[i].y + moedas[i].height &&
-            maiaraY + 70 > moedas[i].y
+            maiaraY + 65 > moedas[i].y
         ) {
             coins += 1;
-            moedas.splice(i, 1); // Pega a moeda
+            moedas.splice(i, 1);
         }
 
-        // Remove moeda que passou da tela
         if (moedas[i].y > canvas.height) {
             moedas.splice(i, 1);
         }
@@ -126,25 +131,29 @@ function update() {
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 1. Desenha a Pista
-    ctx.drawImage(imgPista, 0, 0, canvas.width, canvas.height);
+    // 1. Desenha a Pista em movimento contínuo (dupla para criar o looping perfeito)
+    ctx.drawImage(imgPista, 0, pistaY, canvas.width, canvas.height);
+    ctx.drawImage(imgPista, 0, pistaY - canvas.height, canvas.width, canvas.height);
 
     // 2. Desenha os Obstáculos
     obstaculos.forEach(obs => {
-        ctx.drawImage(imgObstaculo, obs.x - 25, obs.y, obs.width, obs.height);
+        ctx.drawImage(imgObstaculo, obs.x - 22, obs.y, obs.width, obs.height);
     });
 
     // 3. Desenha as Moedas
     moedas.forEach(m => {
-        ctx.drawImage(imgMoeda, m.x - 17, m.y, m.width, m.height);
+        ctx.drawImage(imgMoeda, m.x - 16, m.y, m.width, m.height);
     });
 
-    // 4. Desenha a Maiara
-    ctx.drawImage(imgMaiara, maiaraX - 25, maiaraY, 50, 70);
+    // 4. Efeito de leve corrida (subindo e descendo os pés com o tempo)
+    let maiaraBounce = Math.sin(Date.now() / 60) * 3;
 
-    // 5. Desenha o Super Morango perseguindo (com leve efeito de pulo/movimento)
-    let morangoBounce = Math.sin(Date.now() / 100) * 4;
-    ctx.drawImage(imgMorango, lanes[currentLane] - 25, 510 + morangoBounce, 55, 65);
+    // 5. Desenha a Maiara correndo embaixo
+    ctx.drawImage(imgMaiara, maiaraX - 25, maiaraY + maiaraBounce, 50, 65);
+
+    // 6. Desenha o Super Morango um pouco mais atrás na perseguição
+    let morangoBounce = Math.sin(Date.now() / 60) * 4;
+    ctx.drawImage(imgMorango, maiaraX - 28, maiaraY + 55 + morangoBounce, 55, 65);
 }
 
 function loop() {
@@ -188,3 +197,4 @@ imgMaiara.onload = checarCarregamento;
 imgMorango.onload = checarCarregamento;
 imgMoeda.onload = checarCarregamento;
 imgObstaculo.onload = checarCarregamento;
+            
