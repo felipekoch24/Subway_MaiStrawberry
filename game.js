@@ -1,7 +1,7 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// Carregando as imagens (incluindo o skate!)
+// Carregando as imagens
 const imgPista = new Image(); imgPista.src = "pista.png";
 const imgMaiara = new Image(); imgMaiara.src = "maiara.png";
 const imgMorango = new Image(); imgMorango.src = "morango.png";
@@ -13,57 +13,81 @@ const imgSkate = new Image(); imgSkate.src = "skate1.png";
 let score = 0;
 let coins = 0;
 let isGameOver = false;
-let gameSpeed = 4; // Velocidade que os itens vêm em direção à Maiara
+let gameSpeed = 3.5;
 
-// Posições das 3 pistas (X central de cada faixa)
-const lanes = [110, 200, 290];
-let currentLane = 1; // Começa na pista do meio
+// Posições das 3 pistas no chão (X e Y iniciais lá no horizonte)
+const lanesX = [130, 200, 270];
+let currentLane = 1; // Começa no meio
 
-let maiaraX = lanes[currentLane];
-let maiaraY = 440;
+// Posição vertical da Maiara (com suporte a pulo)
+let maiaraBaseY = 440;
+let maiaraY = maiaraBaseY;
+let isJumping = false;
+let jumpVelocity = 0;
+const gravity = 0.6;
 
 // Listas de itens no cenário
 let obstaculos = [];
 let moedas = [];
 let frameCount = 0;
 
-// Controles de Teclado
+// Controles de Teclado (Setas para trocar de pista, Espaço para pular)
 document.addEventListener("keydown", (e) => {
     if (isGameOver) return;
     if (e.key === "ArrowLeft" && currentLane > 0) {
         currentLane--;
     } else if (e.key === "ArrowRight" && currentLane < 2) {
         currentLane++;
+    } else if ((e.key === " " || e.key === "ArrowUp") && !isJumping) {
+        // Pular
+        isJumping = true;
+        jumpVelocity = -11;
     }
 });
 
-// Controles de Toque (Celular)
+// Controles de Toque (Celular: deslizar pro lado ou para cima para pular)
 let touchStartX = 0;
+let touchStartY = 0;
 document.addEventListener("touchstart", (e) => {
     touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
 });
 
 document.addEventListener("touchend", (e) => {
     if (isGameOver) return;
     let touchEndX = e.changedTouches[0].clientX;
-    if (touchEndX < touchStartX - 30 && currentLane > 0) {
-        currentLane--; // Desliza esquerda
-    } else if (touchEndX > touchStartX + 30 && currentLane < 2) {
-        currentLane++; // Desliza direita
+    let touchEndY = e.changedTouches[0].clientY;
+    
+    let diffX = touchEndX - touchStartX;
+    let diffY = touchEndY - touchStartY;
+
+    if (Math.abs(diffX) > Math.abs(diffY)) {
+        // Movimento horizontal (trocar de pista)
+        if (diffX < -30 && currentLane > 0) {
+            currentLane--;
+        } else if (diffX > 30 && currentLane < 2) {
+            currentLane++;
+        }
+    } else {
+        // Movimento vertical (pular para cima)
+        if (diffY < -30 && !isJumping) {
+            isJumping = true;
+            jumpVelocity = -11;
+        }
     }
 });
 
-// Função para gerar obstáculos e moedas na parte superior vindo para baixo
+// Função para gerar obstáculos e moedas no chão lá no fundo da pista
 function spawnItens() {
     frameCount++;
-    if (frameCount % 85 === 0) {
+    if (frameCount % 90 === 0) {
         let laneAleatoria = Math.floor(Math.random() * 3);
         
-        if (Math.random() > 0.35) {
-            // Obstáculo começa lá no fundo (y menor) e vem crescendo/vindo pra frente
-            obstaculos.push({ x: lanes[laneAleatoria], y: 180, width: 30, height: 30, lane: laneAleatoria, speed: 3 });
+        // Começam pequenos no horizonte (y = 260) e vêm crescendo na pista
+        if (Math.random() > 0.3) {
+            obstaculos.push({ lane: laneAleatoria, x: lanesX[laneAleatoria], y: 260, size: 20, speed: 2.5 });
         } else {
-            moedas.push({ x: lanes[laneAleatoria], y: 180, width: 25, height: 25, lane: laneAleatoria, speed: 3 });
+            moedas.push({ lane: laneAleatoria, x: lanesX[laneAleatoria], y: 260, size: 18, speed: 2.5 });
         }
     }
 }
@@ -71,9 +95,16 @@ function spawnItens() {
 function update() {
     if (isGameOver) return;
 
-    // Movimentação suave da Maiara para a pista escolhida
-    let targetX = lanes[currentLane];
-    maiaraX += (targetX - maiaraX) * 0.25;
+    // Lógica do Pulo
+    if (isJumping) {
+        maiaraY += jumpVelocity;
+        jumpVelocity += gravity;
+        // Se voltar ao chão, para o pulo
+        if (maiaraY >= maiaraBaseY) {
+            maiaraY = maiaraBaseY;
+            isJumping = false;
+        }
+    }
 
     // Aumenta a pontuação de distância
     score += 0.2;
@@ -83,45 +114,51 @@ function update() {
     // Gera novos itens
     spawnItens();
 
-    // Atualiza obstáculos (eles vêm do fundo em direção à Maiara)
+    // Atualiza obstáculos no chão
     for (let i = obstaculos.length - 1; i >= 0; i--) {
-        // Conforme o obstáculo desce na tela, ele aumenta levemente de tamanho simulando profundidade 3D
-        obstaculos[i].y += obstaculos[i].speed;
-        obstaculos[i].speed += 0.03; // Acelera conforme se aproxima
-        obstaculos[i].width += 0.4;
-        obstaculos[i].height += 0.4;
+        let obs = obstaculos[i];
+        obs.y += obs.speed;
+        obs.speed += 0.04; // Acelera conforme se aproxima
+        obs.size += 0.8;   // Aumenta de tamanho simulando 3D na pista
 
-        // Colisão com o obstáculo (A Maiara bateu!)
+        // Recalcula o X na pista conforme ele desce em perspectiva
+        let targetX = lanesX[obs.lane];
+        obs.x += (targetX - obs.x) * 0.1;
+
+        // Colisão: Se estiver na mesma pista, na altura certa e NÃO estiver pulando
         if (
-            obstaculos[i].lane === currentLane &&
-            obstaculos[i].y >= 400 && obstaculos[i].y <= 480
+            obs.lane === currentLane &&
+            obs.y >= 400 && obs.y <= 460 &&
+            maiaraY >= maiaraBaseY - 10 // Se não estiver no ar pulando
         ) {
             triggerGameOver();
         }
 
-        // Remove obstáculo que passou da tela
-        if (obstaculos[i].y > canvas.height) {
+        if (obs.y > canvas.height) {
             obstaculos.splice(i, 1);
         }
     }
 
-    // Atualiza moedas estáticas vindo na direção dela
+    // Atualiza moedas no chão
     for (let i = moedas.length - 1; i >= 0; i--) {
-        moedas[i].y += moedas[i].speed;
-        moedas[i].speed += 0.03;
-        moedas[i].width += 0.3;
-        moedas[i].height += 0.3;
+        let m = moedas[i];
+        m.y += m.speed;
+        m.speed += 0.04;
+        m.size += 0.7;
 
-        // Coleta de moeda (se estiver na mesma pista e na altura da Maiara)
+        let targetX = lanesX[m.lane];
+        m.x += (targetX - m.x) * 0.1;
+
+        // Coleta de moeda
         if (
-            moedas[i].lane === currentLane &&
-            moedas[i].y >= 410 && moedas[i].y <= 470
+            m.lane === currentLane &&
+            m.y >= 405 && m.y <= 465
         ) {
             coins += 1;
             moedas.splice(i, 1);
         }
 
-        if (moedas[i].y > canvas.height) {
+        if (m.y > canvas.height) {
             moedas.splice(i, 1);
         }
     }
@@ -130,29 +167,35 @@ function update() {
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 1. O CENÁRIO FICA FIXO (A pista não roda, fica estática parecendo uma foto de fundo linda)
+    // 1. Cenário Fixo (A rua estática de fundo)
     ctx.drawImage(imgPista, 0, 0, canvas.width, canvas.height);
 
-    // 2. Desenha os Obstáculos vindo do fundo
+    // 2. Desenha os Obstáculos no chão da pista
     obstaculos.forEach(obs => {
-        ctx.drawImage(imgObstaculo, obs.x - obs.width / 2, obs.y, obs.width, obs.height);
+        ctx.drawImage(imgObstaculo, obs.x - obs.size / 2, obs.y, obs.size, obs.size);
     });
 
-    // 3. Desenha as Moedas paradas vindo na direção da tela
+    // 3. Desenha as Moedas no chão da pista
     moedas.forEach(m => {
-        ctx.drawImage(imgMoeda, m.x - m.width / 2, m.y, m.width, m.height);
+        ctx.drawImage(imgMoeda, m.x - m.size / 2, m.y, m.size, m.size);
     });
 
-    // 4. Efeito leve de movimento nos pés da Maiara
-    let maiaraBounce = Math.sin(Date.now() / 60) * 3;
+    // 4. Posição X suave da Maiara para a pista escolhida
+    let targetX = lanesX[currentLane];
+    let currentX = targetX; // Simplificado para fixar na pista
 
-    // 5. Desenha o Skate e a Maiara fixos na parte de baixo correndo
-    ctx.drawImage(imgSkate, maiaraX - 25, maiaraY + 35 + maiaraBounce, 50, 32);
-    ctx.drawImage(imgMaiara, maiaraX - 25, maiaraY + maiaraBounce, 50, 65);
+    // Efeito de movimento nos pés quando no chão
+    let bounce = !isJumping ? Math.sin(Date.now() / 50) * 3 : 0;
 
-    // 6. Desenha o Super Morango colado atrás esperando ela errar
-    let morangoBounce = Math.sin(Date.now() / 60) * 4;
-    ctx.drawImage(imgMorango, maiaraX - 28, maiaraY + 60 + morangoBounce, 55, 65);
+    // 5. Desenha o Skate e a Maiara (pulando ou correndo na pista)
+    if (!isJumping) {
+        ctx.drawImage(imgSkate, currentX - 25, maiaraY + 35 + bounce, 50, 30);
+    }
+    ctx.drawImage(imgMaiara, currentX - 25, maiaraY + bounce, 50, 65);
+
+    // 6. Super Morango perseguindo firme logo atrás
+    let morangoBounce = Math.sin(Date.now() / 50) * 4;
+    ctx.drawImage(imgMorango, currentX - 28, maiaraBaseY + 55 + morangoBounce, 55, 65);
 }
 
 function loop() {
@@ -165,7 +208,7 @@ function loop() {
 
 function triggerGameOver() {
     isGameOver = true;
-    document.getElementById("final-score").innerText = `Distância percorrida: ${Math.floor(score)} m | Moedas: ${coins}`;
+    document.getElementById("final-score").innerText = `Distância: ${Math.floor(score)} m | Moedas: ${coins}`;
     document.getElementById("game-over-screen").classList.remove("hidden");
 }
 
@@ -180,7 +223,6 @@ function reiniciarJogo() {
     loop();
 }
 
-// Inicia o jogo quando as imagens carregarem (total de 6 imagens agora)
 let imagensCarregadas = 0;
 const totalImagens = 6;
 
@@ -197,4 +239,3 @@ imgMorango.onload = checarCarregamento;
 imgMoeda.onload = checarCarregamento;
 imgObstaculo.onload = checarCarregamento;
 imgSkate.onload = checarCarregamento;
-                                
