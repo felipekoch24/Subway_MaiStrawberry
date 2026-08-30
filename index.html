@@ -9,11 +9,16 @@
 <body>
 
     <div id="game-container">
-        <!-- Tela do Jogo -->
+        <!-- Tela de Menu Inicial (Capa) -->
+        <div id="menu-screen">
+            <button id="btn-jogar" onclick="iniciarJogoDoMenu()">TOQUE PARA JOGAR</button>
+        </div>
+
+        <!-- Tela do Jogo (Canvas) -->
         <canvas id="gameCanvas" width="400" height="600"></canvas>
         
         <!-- Placar e HUD -->
-        <div id="hud">
+        <div id="hud" class="hidden">
             <div id="score">🏆 0 m</div>
             <div id="coins">🪙 0</div>
         </div>
