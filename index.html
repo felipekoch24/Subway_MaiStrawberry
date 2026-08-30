@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Subway Mairawberry</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- Tela do Jogo -->
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+        
+        <!-- Placar e HUD -->
+        <div id="hud">
+            <div id="score">🏆 0 m</div>
+            <div id="coins">🪙 0</div>
+        </div>
+
+        <!-- Tela de Game Over -->
+        <div id="game-over-screen" class="hidden">
+            <h2>PEGADINHA DO MORANGO!</h2>
+            <p id="final-score">Distância: 0 m</p>
+            <button onclick="reiniciarJogo()">Tentar de Novo</button>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
