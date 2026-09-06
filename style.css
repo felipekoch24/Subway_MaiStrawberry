@@ -2,7 +2,7 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    touch-action: none; /* Evita zoom e rolagem indesejada no celular */
+    touch-action: none;
 }
 
 body, html {
@@ -22,7 +22,6 @@ body, html {
     align-items: center;
 }
 
-/* Garante tela cheia real para o canvas */
 canvas {
     display: block;
     width: 100%;
@@ -30,7 +29,6 @@ canvas {
     object-fit: cover;
 }
 
-/* Estilo da Tela de Menu com a sua Capa */
 #menu-screen {
     position: absolute;
     top: 0;
@@ -60,7 +58,6 @@ canvas {
     cursor: pointer;
 }
 
-/* HUD do Jogo */
 #hud {
     position: absolute;
     top: 15px;
@@ -77,46 +74,72 @@ canvas {
     pointer-events: none;
 }
 
-/* Tela de Game Over Estilizada */
+/* Tela de Game Over com a imagem customizada de fundo */
 #game-over-screen {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.85);
+    background-image: url('gameover.png');
+    background-size: cover;
+    background-position: center;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-end;
     align-items: center;
-    color: white;
+    padding-bottom: 45px;
     z-index: 30;
-    text-align: center;
-    padding: 20px;
+    box-sizing: border-box;
 }
 
-#game-over-screen h2 {
-    font-size: 1.8rem;
-    color: #ff4757;
-    margin-bottom: 15px;
+/* Alinha os números dentro da caixinha preta do gameover.png */
+#game-over-hud {
+    position: absolute;
+    bottom: 125px;
+    width: 82%;
+    max-width: 400px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    color: #ff3838;
+    font-size: 1.4rem;
+    font-weight: 900;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
 }
 
-#game-over-screen p {
-    font-size: 1.2rem;
-    margin: 8px 0;
+#final-coins {
+    color: #ffd700;
 }
 
-#game-over-screen button {
-    margin-top: 25px;
-    background: #2ed573;
-    color: white;
-    border: none;
-    padding: 12px 30px;
-    font-size: 1.2rem;
+#game-over-buttons {
+    display: flex;
+    gap: 10px;
+    width: 85%;
+    max-width: 420px;
+    z-index: 35;
+}
+
+#btn-tentar, #btn-menu {
+    flex: 1;
+    padding: 14px 10px;
+    font-size: 0.95rem;
     font-weight: bold;
-    border-radius: 25px;
+    border: 2px solid #000;
+    border-radius: 12px;
     cursor: pointer;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.6);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+}
+
+#btn-tentar {
+    background: #e74c3c;
+    color: white;
+}
+
+#btn-menu {
+    background: #1e1e1e;
+    color: white;
 }
 
 .hidden {
