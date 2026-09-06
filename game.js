@@ -1,7 +1,6 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// Ajuste automático para tela cheia real do dispositivo
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -9,7 +8,6 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// Carregando as imagens
 const imgPista = new Image(); imgPista.src = "pista.png";
 const imgMaiara = new Image(); imgMaiara.src = "maiara.png";
 const imgMorango = new Image(); imgMorango.src = "morango.png";
@@ -18,7 +16,6 @@ const imgObstaculo = new Image(); imgObstaculo.src = "obstaculo.png";
 const imgSkate = new Image(); imgSkate.src = "skate1.png";
 const imgCapa = new Image(); imgCapa.src = "capa1.png";
 
-// Variáveis do Jogo
 let score = 0;
 let coins = 0;
 let highScore = localStorage.getItem("subway_highScore") ? parseInt(localStorage.getItem("subway_highScore")) : 0;
@@ -27,10 +24,9 @@ let totalCoins = localStorage.getItem("subway_totalCoins") ? parseInt(localStora
 let isGameOver = false;
 let gameStarted = false;
 
-// Posições base das pistas calculadas com base na largura da tela
 function getLanesX() {
     let centerX = canvas.width / 2;
-    let spacing = canvas.width * 0.18; // Distância entre pistas proporcional à tela
+    let spacing = canvas.width * 0.18;
     return [centerX - spacing, centerX, centerX + spacing];
 }
 
@@ -51,10 +47,8 @@ function atualizarPosicoesBase() {
 }
 atualizarPosicoesBase();
 
-// Controles de Teclado
 document.addEventListener("keydown", (e) => {
     if (isGameOver || !gameStarted) return;
-    let lanesX = getLanesX();
     if (e.key === "ArrowLeft" && currentLane > 0) {
         currentLane--;
     } else if (e.key === "ArrowRight" && currentLane < 2) {
@@ -65,7 +59,6 @@ document.addEventListener("keydown", (e) => {
     }
 });
 
-// Controles de Toque (Celular)
 let touchStartX = 0;
 let touchStartY = 0;
 document.addEventListener("touchstart", (e) => {
@@ -99,16 +92,13 @@ function spawnItens() {
     frameCount++;
     let lanesX = getLanesX();
     
-    // Geração de obstáculos e trilhas de moedas
     if (frameCount % 90 === 0) {
         let laneAleatoria = Math.floor(Math.random() * 3);
-        let horizonY = canvas.height * 0.38; // Começa mais abaixo no horizonte para evitar efeito de queda na cabeça
+        let horizonY = canvas.height * 0.38;
         
         if (Math.random() > 0.4) {
-            // Obstáculo
             obstaculos.push({ lane: laneAleatoria, x: lanesX[laneAleatoria], y: horizonY, size: 20, speed: 2.2 });
         } else {
-            // Trilha de moedas sequenciadas (estilo Subway Surfers)
             for (let j = 0; j < 4; j++) {
                 moedas.push({ 
                     lane: laneAleatoria, 
@@ -142,17 +132,15 @@ function update() {
     spawnItens();
     let lanesX = getLanesX();
 
-    // Atualiza obstáculos
     for (let i = obstaculos.length - 1; i >= 0; i--) {
         let obs = obstaculos[i];
         obs.y += obs.speed;
         obs.speed += 0.03; 
-        obs.size += 0.8;   // Escala fluida em perspectiva
+        obs.size += 0.8;
 
         let targetX = lanesX[obs.lane];
         obs.x += (targetX - obs.x) * 0.15;
 
-        // Colisão calibrada com a base da tela (ponto onde a Maiara está)
         let hitZoneY = canvas.height * 0.70;
         if (
             obs.lane === currentLane &&
@@ -167,7 +155,6 @@ function update() {
         }
     }
 
-    // Atualiza moedas
     for (let i = moedas.length - 1; i >= 0; i--) {
         let m = moedas[i];
         m.y += m.speed;
@@ -196,15 +183,12 @@ function update() {
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 1. Cenário em tela cheia
     ctx.drawImage(imgPista, 0, 0, canvas.width, canvas.height);
 
-    // 2. Obstáculos
     obstaculos.forEach(obs => {
         ctx.drawImage(imgObstaculo, obs.x - obs.size / 2, obs.y - obs.size, obs.size, obs.size);
     });
 
-    // 3. Moedas em trilho
     moedas.forEach(m => {
         ctx.drawImage(imgMoeda, m.x - m.size / 2, m.y - m.size, m.size, m.size);
     });
@@ -213,17 +197,14 @@ function draw() {
     let targetX = lanesX[currentLane];
     let bounce = !isJumping ? Math.sin(Date.now() / 60) * 4 : 0;
 
-    // Tamanho proporcional do personagem na tela
     let charWidth = canvas.width * 0.14;
     let charHeight = charWidth * 1.3;
 
-    // 4. Desenha Skate e Maiara
     if (!isJumping) {
         ctx.drawImage(imgSkate, targetX - (charWidth * 0.45), maiaraY + (charHeight * 0.55) + bounce, charWidth * 0.9, charHeight * 0.4);
     }
     ctx.drawImage(imgMaiara, targetX - (charWidth / 2), maiaraY + bounce, charWidth, charHeight);
 
-    // 5. Super Morango na cola do jogador
     let morangoWidth = charWidth * 0.95;
     let morangoHeight = charHeight * 0.95;
     let morangoBounce = Math.sin(Date.now() / 60) * 5;
@@ -241,17 +222,22 @@ function loop() {
 function triggerGameOver() {
     isGameOver = true;
     
-    // Atualiza Recordes no LocalStorage
     let currentScoreFinal = Math.floor(score);
     if (currentScoreFinal > highScore) {
         highScore = currentScoreFinal;
         localStorage.setItem("subway_highScore", highScore);
     }
 
-    document.getElementById("final-score").innerText = `Distância: ${currentScoreFinal} m`;
-    document.getElementById("final-coins").innerText = `Moedas coletadas: ${totalCoins}`;
-    document.getElementById("best-score-text").innerText = `Recorde: ${highScore} m`;
+    document.getElementById("final-score").innerText = `${currentScoreFinal} m`;
+    document.getElementById("final-coins").innerText = `${totalCoins}`;
     document.getElementById("game-over-screen").classList.remove("hidden");
+}
+
+function voltarAoMenu() {
+    document.getElementById("game-over-screen").classList.add("hidden");
+    document.getElementById("hud").classList.add("hidden");
+    document.getElementById("menu-screen").classList.remove("hidden");
+    gameStarted = false;
 }
 
 function reiniciarJogo() {
@@ -271,4 +257,4 @@ function iniciarJogoDoMenu() {
     document.getElementById("hud").classList.remove("hidden");
     atualizarPosicoesBase();
     loop();
-}
+        }
