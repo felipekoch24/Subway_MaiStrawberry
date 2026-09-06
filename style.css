@@ -74,7 +74,7 @@ canvas {
     pointer-events: none;
 }
 
-/* Tela de Game Over com a imagem customizada de fundo */
+/* Tela de Game Over com fundo fixo e garantindo que some quando jogando */
 #game-over-screen {
     position: absolute;
     top: 0;
@@ -88,24 +88,32 @@ canvas {
     flex-direction: column;
     justify-content: flex-end;
     align-items: center;
-    padding-bottom: 45px;
+    padding-bottom: 50px;
     z-index: 30;
     box-sizing: border-box;
 }
 
-/* Alinha os números dentro da caixinha preta do gameover.png */
+#game-over-screen.hidden {
+    display: none !important;
+}
+
+/* Alinhamento corrigido para cair exatamente no meio da moldura preta */
 #game-over-hud {
     position: absolute;
-    bottom: 125px;
-    width: 82%;
-    max-width: 400px;
+    bottom: 112px;
+    width: 80%;
+    max-width: 380px;
     display: flex;
-    justify-content: space-around;
+    justify-content: space-between;
     align-items: center;
-    color: #ff3838;
-    font-size: 1.4rem;
+    padding: 0 25px;
+    font-size: 1.5rem;
     font-weight: 900;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
+}
+
+#final-score {
+    color: #ff3838;
 }
 
 #final-coins {
@@ -114,7 +122,7 @@ canvas {
 
 #game-over-buttons {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     width: 85%;
     max-width: 420px;
     z-index: 35;
