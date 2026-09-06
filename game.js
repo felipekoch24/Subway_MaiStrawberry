@@ -1,6 +1,14 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
+// Ajuste automático para tela cheia real do dispositivo
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
 // Carregando as imagens
 const imgPista = new Image(); imgPista.src = "pista.png";
 const imgMaiara = new Image(); imgMaiara.src = "maiara.png";
@@ -13,33 +21,47 @@ const imgCapa = new Image(); imgCapa.src = "capa1.png";
 // Variáveis do Jogo
 let score = 0;
 let coins = 0;
+let highScore = localStorage.getItem("subway_highScore") ? parseInt(localStorage.getItem("subway_highScore")) : 0;
+let totalCoins = localStorage.getItem("subway_totalCoins") ? parseInt(localStorage.getItem("subway_totalCoins")) : 0;
+
 let isGameOver = false;
-let gameSpeed = 2.8; // Velocidade inicial calibrada
+let gameStarted = false;
 
-// Posições X das pistas no chão e no horizonte
-const lanesX = [140, 200, 260];
+// Posições base das pistas calculadas com base na largura da tela
+function getLanesX() {
+    let centerX = canvas.width / 2;
+    let spacing = canvas.width * 0.18; // Distância entre pistas proporcional à tela
+    return [centerX - spacing, centerX, centerX + spacing];
+}
+
 let currentLane = 1;
-
-let maiaraBaseY = 440;
-let maiaraY = maiaraBaseY;
+let maiaraY = 0;
+let maiaraBaseY = 0;
 let isJumping = false;
 let jumpVelocity = 0;
-const gravity = 0.55;
+const gravity = 0.6;
 
 let obstaculos = [];
 let moedas = [];
 let frameCount = 0;
 
+function atualizarPosicoesBase() {
+    maiaraBaseY = canvas.height * 0.72;
+    if (!isJumping) maiaraY = maiaraBaseY;
+}
+atualizarPosicoesBase();
+
 // Controles de Teclado
 document.addEventListener("keydown", (e) => {
-    if (isGameOver) return;
+    if (isGameOver || !gameStarted) return;
+    let lanesX = getLanesX();
     if (e.key === "ArrowLeft" && currentLane > 0) {
         currentLane--;
     } else if (e.key === "ArrowRight" && currentLane < 2) {
         currentLane++;
     } else if ((e.key === " " || e.key === "ArrowUp") && !isJumping) {
         isJumping = true;
-        jumpVelocity = -10;
+        jumpVelocity = -12;
     }
 });
 
@@ -52,7 +74,7 @@ document.addEventListener("touchstart", (e) => {
 });
 
 document.addEventListener("touchend", (e) => {
-    if (isGameOver) return;
+    if (isGameOver || !gameStarted) return;
     let touchEndX = e.changedTouches[0].clientX;
     let touchEndY = e.changedTouches[0].clientY;
     
@@ -68,27 +90,40 @@ document.addEventListener("touchend", (e) => {
     } else {
         if (diffY < -30 && !isJumping) {
             isJumping = true;
-            jumpVelocity = -10;
+            jumpVelocity = -12;
         }
     }
 });
 
 function spawnItens() {
     frameCount++;
-    if (frameCount % 100 === 0) {
+    let lanesX = getLanesX();
+    
+    // Geração de obstáculos e trilhas de moedas
+    if (frameCount % 90 === 0) {
         let laneAleatoria = Math.floor(Math.random() * 3);
+        let horizonY = canvas.height * 0.38; // Começa mais abaixo no horizonte para evitar efeito de queda na cabeça
         
-        // AGORA SIM: Nascem bem lá no fundo do horizonte (y = 210) e bem pequenininhos (size = 10)
-        if (Math.random() > 0.35) {
-            obstaculos.push({ lane: laneAleatoria, x: lanesX[laneAleatoria], y: 210, size: 10, speed: 2.0 });
+        if (Math.random() > 0.4) {
+            // Obstáculo
+            obstaculos.push({ lane: laneAleatoria, x: lanesX[laneAleatoria], y: horizonY, size: 20, speed: 2.2 });
         } else {
-            moedas.push({ lane: laneAleatoria, x: lanesX[laneAleatoria], y: 210, size: 10, speed: 2.0 });
+            // Trilha de moedas sequenciadas (estilo Subway Surfers)
+            for (let j = 0; j < 4; j++) {
+                moedas.push({ 
+                    lane: laneAleatoria, 
+                    x: lanesX[laneAleatoria], 
+                    y: horizonY - (j * 25), 
+                    size: 15, 
+                    speed: 2.2 
+                });
+            }
         }
     }
 }
 
 function update() {
-    if (isGameOver) return;
+    if (isGameOver || !gameStarted) return;
 
     if (isJumping) {
         maiaraY += jumpVelocity;
@@ -99,27 +134,30 @@ function update() {
         }
     }
 
-    score += 0.2;
+    score += 0.15;
     document.getElementById("score").innerText = `🏆 ${Math.floor(score)} m`;
-    document.getElementById("coins").innerText = `🪙 ${coins}`;
+    document.getElementById("coins").innerText = `🪙 ${totalCoins}`;
+    document.getElementById("high-score").innerText = `⭐ Recorde: ${highScore} m`;
 
     spawnItens();
+    let lanesX = getLanesX();
 
-    // Atualiza obstáculos vindo do horizonte
+    // Atualiza obstáculos
     for (let i = obstaculos.length - 1; i >= 0; i--) {
         let obs = obstaculos[i];
         obs.y += obs.speed;
-        obs.speed += 0.025; // Aceleração suave conforme se aproxima
-        obs.size += 0.55;   // Cresce gradualmente dando efeito 3D perfeito
+        obs.speed += 0.03; 
+        obs.size += 0.8;   // Escala fluida em perspectiva
 
         let targetX = lanesX[obs.lane];
-        obs.x += (targetX - obs.x) * 0.1;
+        obs.x += (targetX - obs.x) * 0.15;
 
-        // Colisão (Só bate se estiver na pista certa, na altura da Maiara e NÃO estiver pulando)
+        // Colisão calibrada com a base da tela (ponto onde a Maiara está)
+        let hitZoneY = canvas.height * 0.70;
         if (
             obs.lane === currentLane &&
-            obs.y >= 410 && obs.y <= 460 &&
-            maiaraY >= maiaraBaseY - 5
+            obs.y >= hitZoneY - 30 && obs.y <= hitZoneY + 20 &&
+            maiaraY >= maiaraBaseY - 10
         ) {
             triggerGameOver();
         }
@@ -129,22 +167,23 @@ function update() {
         }
     }
 
-    // Atualiza moedas vindo do horizonte
+    // Atualiza moedas
     for (let i = moedas.length - 1; i >= 0; i--) {
         let m = moedas[i];
         m.y += m.speed;
-        m.speed += 0.025;
-        m.size += 0.5;
+        m.speed += 0.03;
+        m.size += 0.6;
 
         let targetX = lanesX[m.lane];
-        m.x += (targetX - m.x) * 0.1;
+        m.x += (targetX - m.x) * 0.15;
 
-        // Coleta de moeda
+        let hitZoneY = canvas.height * 0.70;
         if (
             m.lane === currentLane &&
-            m.y >= 415 && m.y <= 465
+            m.y >= hitZoneY - 40 && m.y <= hitZoneY + 30
         ) {
-            coins += 1;
+            totalCoins += 1;
+            localStorage.setItem("subway_totalCoins", totalCoins);
             moedas.splice(i, 1);
         }
 
@@ -157,78 +196,79 @@ function update() {
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 1. Cenário fixo
+    // 1. Cenário em tela cheia
     ctx.drawImage(imgPista, 0, 0, canvas.width, canvas.height);
 
-    // 2. Desenha os Obstáculos crescendo em perspectiva
+    // 2. Obstáculos
     obstaculos.forEach(obs => {
-        ctx.drawImage(imgObstaculo, obs.x - obs.size / 2, obs.y, obs.size, obs.size);
+        ctx.drawImage(imgObstaculo, obs.x - obs.size / 2, obs.y - obs.size, obs.size, obs.size);
     });
 
-    // 3. Desenha as Moedas crescendo em perspectiva
+    // 3. Moedas em trilho
     moedas.forEach(m => {
-        ctx.drawImage(imgMoeda, m.x - m.size / 2, m.y, m.size, m.size);
+        ctx.drawImage(imgMoeda, m.x - m.size / 2, m.y - m.size, m.size, m.size);
     });
 
+    let lanesX = getLanesX();
     let targetX = lanesX[currentLane];
-    let bounce = !isJumping ? Math.sin(Date.now() / 50) * 3 : 0;
+    let bounce = !isJumping ? Math.sin(Date.now() / 60) * 4 : 0;
+
+    // Tamanho proporcional do personagem na tela
+    let charWidth = canvas.width * 0.14;
+    let charHeight = charWidth * 1.3;
 
     // 4. Desenha Skate e Maiara
     if (!isJumping) {
-        ctx.drawImage(imgSkate, targetX - 22, maiaraY + 35 + bounce, 45, 28);
+        ctx.drawImage(imgSkate, targetX - (charWidth * 0.45), maiaraY + (charHeight * 0.55) + bounce, charWidth * 0.9, charHeight * 0.4);
     }
-    ctx.drawImage(imgMaiara, targetX - 25, maiaraY + bounce, 50, 65);
+    ctx.drawImage(imgMaiara, targetX - (charWidth / 2), maiaraY + bounce, charWidth, charHeight);
 
-    // 5. Super Morango na cola
-    let morangoBounce = Math.sin(Date.now() / 50) * 4;
-    ctx.drawImage(imgMorango, targetX - 28, maiaraBaseY + 55 + morangoBounce, 55, 65);
+    // 5. Super Morango na cola do jogador
+    let morangoWidth = charWidth * 0.95;
+    let morangoHeight = charHeight * 0.95;
+    let morangoBounce = Math.sin(Date.now() / 60) * 5;
+    ctx.drawImage(imgMorango, targetX - (morangoWidth / 2), maiaraBaseY + (charHeight * 0.45) + morangoBounce, morangoWidth, morangoHeight);
 }
 
 function loop() {
     update();
     draw();
-    if (!isGameOver) {
+    if (!isGameOver && gameStarted) {
         requestAnimationFrame(loop);
     }
 }
 
 function triggerGameOver() {
     isGameOver = true;
-    document.getElementById("final-score").innerText = `Distância: ${Math.floor(score)} m | Moedas: ${coins}`;
+    
+    // Atualiza Recordes no LocalStorage
+    let currentScoreFinal = Math.floor(score);
+    if (currentScoreFinal > highScore) {
+        highScore = currentScoreFinal;
+        localStorage.setItem("subway_highScore", highScore);
+    }
+
+    document.getElementById("final-score").innerText = `Distância: ${currentScoreFinal} m`;
+    document.getElementById("final-coins").innerText = `Moedas coletadas: ${totalCoins}`;
+    document.getElementById("best-score-text").innerText = `Recorde: ${highScore} m`;
     document.getElementById("game-over-screen").classList.remove("hidden");
 }
 
 function reiniciarJogo() {
     score = 0;
-    coins = 0;
     currentLane = 1;
     obstaculos = [];
     moedas = [];
     isGameOver = false;
+    atualizarPosicoesBase();
     document.getElementById("game-over-screen").classList.add("hidden");
     loop();
 }
 
 function iniciarJogoDoMenu() {
+    gameStarted = true;
     document.getElementById("menu-screen").classList.add("hidden");
     document.getElementById("hud").classList.remove("hidden");
+    atualizarPosicoesBase();
     loop();
 }
-
-let imagensCarregadas = 0;
-const totalImagens = 7;
-
-function checarCarregamento() {
-    imagensCarregadas++;
-    if (imagensCarregadas === totalImagens) {
-        console.log("Tudo pronto!");
-    }
-}
-
-imgPista.onload = checarCarregamento;
-imgMaiara.onload = checarCarregamento;
-imgMorango.onload = checarCarregamento;
-imgMoeda.onload = checarCarregamento;
-imgObstaculo.onload = checarCarregamento;
-imgSkate.onload = checarCarregamento;
-imgCapa.onload = checarCarregamento;
