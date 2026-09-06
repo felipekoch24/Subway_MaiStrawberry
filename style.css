@@ -1,3 +1,35 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    touch-action: none; /* Evita zoom e rolagem indesejada no celular */
+}
+
+body, html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: #111;
+    font-family: Arial, sans-serif;
+}
+
+#game-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Garante tela cheia real para o canvas */
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
 /* Estilo da Tela de Menu com a sua Capa */
 #menu-screen {
     position: absolute;
@@ -10,8 +42,8 @@
     background-position: center;
     display: flex;
     justify-content: center;
-    align-items: flex-end; /* Joga os elementos para baixo */
-    padding-bottom: 55px; /* Ajusta a altura exata do botão da imagem */
+    align-items: flex-end;
+    padding-bottom: 55px;
     z-index: 20;
 }
 
@@ -19,7 +51,6 @@
     display: none;
 }
 
-/* Botão invisível/clicável que encaixa perfeitamente em cima do botão da arte da capa */
 #btn-jogar {
     background: transparent;
     color: transparent;
@@ -29,7 +60,65 @@
     cursor: pointer;
 }
 
-/* Utilitário para esconder elementos */
+/* HUD do Jogo */
+#hud {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    right: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    z-index: 10;
+    pointer-events: none;
+}
+
+/* Tela de Game Over Estilizada */
+#game-over-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    z-index: 30;
+    text-align: center;
+    padding: 20px;
+}
+
+#game-over-screen h2 {
+    font-size: 1.8rem;
+    color: #ff4757;
+    margin-bottom: 15px;
+}
+
+#game-over-screen p {
+    font-size: 1.2rem;
+    margin: 8px 0;
+}
+
+#game-over-screen button {
+    margin-top: 25px;
+    background: #2ed573;
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    border-radius: 25px;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
 .hidden {
     display: none !important;
 }
