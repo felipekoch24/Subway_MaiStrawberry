@@ -17,7 +17,6 @@ const imgSkate = new Image(); imgSkate.src = "skate1.png";
 const imgCapa = new Image(); imgCapa.src = "capa1.png";
 
 let score = 0;
-let coins = 0;
 let highScore = localStorage.getItem("subway_highScore") ? parseInt(localStorage.getItem("subway_highScore")) : 0;
 let totalCoins = localStorage.getItem("subway_totalCoins") ? parseInt(localStorage.getItem("subway_totalCoins")) : 0;
 
@@ -230,7 +229,10 @@ function triggerGameOver() {
 
     document.getElementById("final-score").innerText = `${currentScoreFinal} m`;
     document.getElementById("final-coins").innerText = `${totalCoins}`;
+    
+    // Garante que a tela de game over aparece e o HUD some
     document.getElementById("game-over-screen").classList.remove("hidden");
+    document.getElementById("hud").classList.add("hidden");
 }
 
 function voltarAoMenu() {
@@ -247,14 +249,21 @@ function reiniciarJogo() {
     moedas = [];
     isGameOver = false;
     atualizarPosicoesBase();
+    
     document.getElementById("game-over-screen").classList.add("hidden");
+    document.getElementById("hud").classList.remove("hidden");
     loop();
 }
 
 function iniciarJogoDoMenu() {
     gameStarted = true;
+    isGameOver = false;
+    score = 0;
+    obstaculos = [];
+    moedas = [];
     document.getElementById("menu-screen").classList.add("hidden");
+    document.getElementById("game-over-screen").classList.add("hidden");
     document.getElementById("hud").classList.remove("hidden");
     atualizarPosicoesBase();
     loop();
-        }
+}
